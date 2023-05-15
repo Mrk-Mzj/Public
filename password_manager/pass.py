@@ -11,14 +11,15 @@ https://www.w3schools.com/python/python_mysql_getstarted.asp
 
 
 def main():
-    import mysql.connector, sys
+    # Standard library imports:
+    import sys
+
+    # Third party imports:
+    import mysql.connector
     from mysql.connector import errors
 
-    # chcecking if program was launched with password as parameter:
-    if len(sys.argv) != 2:
-        sys.exit("\nYou must run program with mySQL password as a parameter")
-    else:
-        MY_SQL_PASSWORD = sys.argv[1]
+    # password chcecking:
+    MY_SQL_PASSWORD = password_check()
 
     print()
 
@@ -47,6 +48,19 @@ def main():
     # TODO: login, password, change password
     # TODO: interface
 
+
+    # Close the cursor and the connection
+    mycursor.close()
+    mydb.close()
+
+
+# chcecking if program was launched with password as parameter:
+def password_check():
+    import sys
+    if len(sys.argv) != 2:
+        sys.exit("\nYou must run program with mySQL password as a parameter")
+    else:
+        return sys.argv[1]
 
 # create database:
 def create_database(mycursor, name="db_pass_python"):
