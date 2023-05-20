@@ -10,17 +10,24 @@ import sys
 import mysql.connector
 from mysql.connector import errors
 
+DATABASE = "db_pass_python"
+
 
 def main():
     # password chcecking:
     MY_SQL_USER, MY_SQL_PASSWORD = login_db()
 
-    # connecting to the database:
-    mydb = connect_db(MY_SQL_USER, MY_SQL_PASSWORD)
-    mycursor = mydb.cursor()
+    # connecting to the database (or creating a new one):
+    mydb, mycursor = connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD)
+
 
     # show all databases:
     show_all_db(mycursor)
+
+    # delete database:
+    print("\nDeleting database")
+    mycursor.execute("DROP DATABASE " + DATABASE)
+
 
     # close the cursor and the connection:
     mycursor.close()
@@ -31,6 +38,44 @@ def main():
     # TODO: search
     # TODO: encryption
     # TODO: interface
+
+
+def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
+    # connect to the database or create a new one if one doesn't exist
+    try:
+        mydb = mysql.connector.connect(
+            host="localhost",
+            user=MY_SQL_USER,
+            password=MY_SQL_PASSWORD,
+            database=DATABASE
+        )
+        mycursor = mydb.cursor()
+        return mydb, mycursor
+
+    except errors.ProgrammingError as error:
+        
+
+        if error.errno == 1049:
+            # database does not exist:
+            print("database does not exist, creating a new one")
+
+            # create a new database:
+            mydb = mysql.connector.connect(
+                host="localhost",
+                user=MY_SQL_USER,
+                password=MY_SQL_PASSWORD
+            )
+            mycursor = mydb.cursor()
+            mycursor.execute("CREATE DATABASE " + DATABASE)
+            return mydb, mycursor
+
+        elif error.errno == 1045:
+            # wrong username or password:
+            sys.exit("wrong username or password")
+        
+        else:
+            sys.exit(f"other database error: {error}")
+
 
 
 def login_db():
@@ -45,28 +90,9 @@ def login_db():
         return sys.argv[1], sys.argv[2]
 
 
-def connect_db(MY_SQL_USER, MY_SQL_PASSWORD):
-    # connect to the database
-    try:
-        mydb = mysql.connector.connect(
-            host="localhost",
-            user=MY_SQL_USER,
-            password=MY_SQL_PASSWORD,
-            database="db_pass_python",  # TODO: check if there is db_pass_python database. If not: create_database(mycursor, db_pass_python)
-        )
-        return mydb
-
-    except errors.ProgrammingError as e:
-        sys.exit(f"cannot connect to MySQL database: \n{e}")
-
-
-def create_database(mycursor, name="db_pass_python"):
-    # create database
-    mycursor.execute("CREATE DATABASE {name}")
-
-
 def show_all_db(mycursor):
     # show all databases
+    print()
     mycursor.execute("SHOW DATABASES")
     for x in mycursor:
         print(x)
