@@ -20,14 +20,12 @@ def main():
     # connecting to the database (or creating a new one):
     mydb, mycursor = connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD)
 
-
     # show all databases:
     show_all_db(mycursor)
 
     # delete database:
-    print("\nDeleting database")
-    mycursor.execute("DROP DATABASE " + DATABASE)
-
+    # mycursor.execute("DROP DATABASE " + DATABASE)
+    # print("\nDeleting database")
 
     # close the cursor and the connection:
     mycursor.close()
@@ -47,35 +45,34 @@ def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
             host="localhost",
             user=MY_SQL_USER,
             password=MY_SQL_PASSWORD,
-            database=DATABASE
+            database=DATABASE,
         )
         mycursor = mydb.cursor()
         return mydb, mycursor
 
     except errors.ProgrammingError as error:
-        
-
         if error.errno == 1049:
             # database does not exist:
             print("database does not exist, creating a new one")
 
-            # create a new database:
+            # create new database and table:
             mydb = mysql.connector.connect(
-                host="localhost",
-                user=MY_SQL_USER,
-                password=MY_SQL_PASSWORD
+                host="localhost", user=MY_SQL_USER, password=MY_SQL_PASSWORD
             )
             mycursor = mydb.cursor()
             mycursor.execute("CREATE DATABASE " + DATABASE)
+            mycursor.execute("USE " + DATABASE)
+            mycursor.execute(
+                "CREATE TABLE passwords (ID int NOT NULL AUTO_INCREMENT, title TEXT, login TEXT, password TEXT, PRIMARY KEY (ID))"
+            )
             return mydb, mycursor
 
         elif error.errno == 1045:
             # wrong username or password:
             sys.exit("wrong username or password")
-        
+
         else:
             sys.exit(f"other database error: {error}")
-
 
 
 def login_db():
