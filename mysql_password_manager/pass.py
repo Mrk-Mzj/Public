@@ -20,12 +20,19 @@ def main():
     # connecting to the database (or creating a new one):
     mydb, mycursor = connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD)
 
-    # show all databases:
-    show_all_db(mycursor)
+    # gathering user input:
+    print("What to do?\n")
+    print("  S XX       - show record number XX")
+    print("  M XX       - modify record number XX")
+    print("  R XX       - remove record number XX")
+    print("  A XXX YYY  - add new record: login XXX and password YYY")
+    print("  ERASE      - delete whole database")
+    print("  E          - exit\n")
+    user_input = input()
+    do(user_input, mydb, mycursor)
 
-    # delete database:
-    # mycursor.execute("DROP DATABASE " + DATABASE)
-    # print("\nDeleting database")
+    # show all databases:
+    # show_all_db(mycursor)
 
     # close the cursor and the connection:
     mycursor.close()
@@ -73,6 +80,54 @@ def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
 
         else:
             sys.exit(f"other database error: {error}")
+
+
+def do(user_input, mydb, mycursor):
+    user_input = user_input.strip().split(" ")
+
+    # input checking:
+    if 1 > len(user_input) or len(user_input) > 4:
+        print("Wrong command")
+
+    # if everything's fine:
+    else:
+        match user_input[0].upper():
+            # Show decoded record values:
+            case "S":
+                print("Showing...", user_input[1])
+
+            # Modify record values:
+            case "M":
+                print("Modifying...", user_input[1])
+
+            # Remove record:
+            case "R":
+                print("Removing...", user_input[1])
+
+            # Add new record:
+            case "A":
+                print("Adding...", user_input[1], user_input[2], user_input[3])
+                # mycursor.execute("INSERT INTO passwords (ID, title, login, password) VALUES (%s, %s, %s)")
+                # mydb.commit()
+
+            # Erase database:
+            case "ERASE":
+                confirmation = input(
+                    "Are you sure?\n Y - yes, erase database\n N - no, keep database"
+                )
+                if confirmation.strip().upper() == "Y":
+                    mycursor.execute("DROP DATABASE " + DATABASE)
+                    print("Database erased")
+                    show_all_db(mycursor)
+                    sys.exit()
+                else:
+                    print("Database stays intact")
+            # Exit:
+            case "E":
+                print("Exiting...")
+                sys.exit()
+            case _:
+                print("Wrong command")
 
 
 def login_db():
