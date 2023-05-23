@@ -83,7 +83,7 @@ def do(user_input, mydb, mycursor):
     user_input = user_input.strip().split(" ")
 
     # input checking:
-    if 1 > len(user_input) or len(user_input) > 4:
+    if 1 > len(user_input) or len(user_input) > 5:
         print("Wrong command")
 
     # if everything's fine:
@@ -95,7 +95,20 @@ def do(user_input, mydb, mycursor):
 
             # Modify record values:
             case "M":
-                print("Modifying...", user_input[1])
+                if len(user_input) == 5:
+                    id = user_input[1]
+                    title = user_input[2]
+                    login = user_input[3]
+                    password = user_input[4]
+
+                    mycursor.execute(
+                        "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
+                        (title, login, password, id),
+                    )
+                    mydb.commit()
+                    print("Modified: ", title, login, password)
+                else:
+                    print("You need to add parameters:\nM title login password")
 
             # Remove record:
             case "R":
