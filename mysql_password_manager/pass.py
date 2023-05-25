@@ -21,19 +21,21 @@ def main():
     mydb, mycursor = connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD)
 
     while True:
-        # gathering user input:
-        print("\nWhat to do?\n")
-        print("  S XX       - show record number XX")
-        print("  M XX       - modify record number XX")
-        print("  R XX       - remove record number XX")
-        print("  A XXX YYY ZZZ  - add new record: title XXX login YYY and password ZZZ")
-        print("  ERASE      - delete the whole database")
-        print("  E          - exit\n")
-        user_input = input()
-        do(user_input, mydb, mycursor)
+        # showing contents of the database:
+        show_all_records(mycursor)
 
-    # show all databases:
-    # show_all_db(mycursor)
+        # gathering user input:
+        print("\nWhat to do?")
+        print("  S N              - show record nr NN")
+        print("  R N              - remove record nr NN")
+        print("  A TTT LLL PPP    - add new record: title TTT login LLL and pass PPP")
+        print("  M N TTT LLL PPP  - modify record nr NN: title TTT login LLL pass PPP")
+        print("  ERASE            - delete the whole database")
+        print("  E                - exit\n")
+        user_input = input()
+
+        # executing command:
+        do(user_input, mydb, mycursor)
 
     # TODO: view, add, modify, delete entry (CRUD operations)
     # TODO: view as a formatted text table
@@ -91,7 +93,43 @@ def do(user_input, mydb, mycursor):
         match user_input[0].upper():
             # Show decoded record values:
             case "S":
-                print("Showing...", user_input[1])
+                if len(user_input) == 2:
+                    id = user_input[1]
+                    print()
+                    mycursor.execute(
+                        "SELECT * FROM passwords WHERE ID=%s", (id,)
+                    )  # comma is essential, as "execute" expects tuple
+                    print(mycursor.fetchall())
+                else:
+                    print("You need to add parameters:\nS number")
+
+            # Remove record:
+            case "R":
+                if len(user_input) == 2:
+                    id = user_input[1]
+                    mycursor.execute(
+                        "DELETE FROM passwords WHERE id=%s", (id,)
+                    )  # comma is essential, as "execute" expects tuple
+                    mydb.commit()
+                    print("Removing...", user_input[1])
+                else:
+                    print("You need to add parameters:\nR number")
+
+            # Add new record:
+            case "A":
+                if len(user_input) == 4:
+                    title = user_input[1]
+                    login = user_input[2]
+                    password = user_input[3]
+
+                    mycursor.execute(
+                        "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
+                        (title, login, password),
+                    )
+                    mydb.commit()
+                    print("Added: ", title, login, password)
+                else:
+                    print("You need to add parameters:\nA title login password")
 
             # Modify record values:
             case "M":
@@ -109,30 +147,6 @@ def do(user_input, mydb, mycursor):
                     print("Modified: ", title, login, password)
                 else:
                     print("You need to add parameters:\nM title login password")
-
-            # Remove record:
-            case "R":
-                mycursor.execute(
-                    "DELETE FROM passwords WHERE id=%s", (user_input[1],)
-                )  # comma is essential, as "execute" expects tuple
-                mydb.commit()
-                print("Removing...", user_input[1])
-
-            # Add new record:
-            case "A":
-                if len(user_input) == 4:
-                    title = user_input[1]
-                    login = user_input[2]
-                    password = user_input[3]
-
-                    mycursor.execute(
-                        "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
-                        (title, login, password),
-                    )
-                    mydb.commit()
-                    print("Added: ", title, login, password)
-                else:
-                    print("You need to add parameters:\nA title login password")
 
             # Erase database:
             case "ERASE":
@@ -180,6 +194,16 @@ def show_all_db(mycursor):
     print()
     mycursor.execute("SHOW DATABASES")
     for x in mycursor:
+        print(x)
+
+
+def show_all_records(mycursor):
+    # showing all records, without logins or passwords
+
+    mycursor.execute("SELECT ID, title FROM passwords")
+    myresult = mycursor.fetchall()
+    print()
+    for x in myresult:
         print(x)
 
 
