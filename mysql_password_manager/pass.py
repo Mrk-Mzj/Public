@@ -30,7 +30,7 @@ def main():
         print("  R N              - remove record nr NN")
         print("  A TTT LLL PPP    - add new record: title TTT login LLL and pass PPP")
         print("  M N TTT LLL PPP  - modify record nr NN: title TTT login LLL pass PPP")
-        print("  ERASE            - delete the whole database")
+        print("  ERASE            - delete the whole database and quit")
         print("  E                - exit\n")
         user_input = input()
 
@@ -59,7 +59,7 @@ def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
     except errors.ProgrammingError as error:
         if error.errno == 1049:
             # database does not exist:
-            print("database does not exist, creating a new one")
+            print("> Database does not exist, creating a new one")
 
             # create new database and table:
             mydb = mysql.connector.connect(
@@ -75,10 +75,10 @@ def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
 
         elif error.errno == 1045:
             # wrong username or password:
-            sys.exit("wrong username or password")
+            sys.exit("> Wrong username or password")
 
         else:
-            sys.exit(f"other database error: {error}")
+            sys.exit(f"> Other database error: {error}")
 
 
 def do(user_input, mydb, mycursor):
@@ -86,7 +86,7 @@ def do(user_input, mydb, mycursor):
 
     # input checking:
     if 1 > len(user_input) or len(user_input) > 5:
-        print("Wrong command")
+        print("> Wrong command")
 
     # if everything's fine:
     else:
@@ -99,21 +99,34 @@ def do(user_input, mydb, mycursor):
                     mycursor.execute(
                         "SELECT * FROM passwords WHERE ID=%s", (id,)
                     )  # comma is essential, as "execute" expects tuple
-                    print(mycursor.fetchall())
+                    myresult = mycursor.fetchall()
+
+                    # checking if user provided valid id number:
+                    if id_exist(id, mycursor):
+                        print(myresult)
+                    else:
+                        # id doesn't exist:
+                        print("> You need to add valid number of row to display")
                 else:
-                    print("You need to add parameters:\nS number")
+                    print("> You need to add parameters:\nS number")
 
             # Remove record:
             case "R":
                 if len(user_input) == 2:
                     id = user_input[1]
-                    mycursor.execute(
-                        "DELETE FROM passwords WHERE id=%s", (id,)
-                    )  # comma is essential, as "execute" expects tuple
-                    mydb.commit()
-                    print("Removing...", user_input[1])
+
+                    # checking if user provided valid id number:
+                    if id_exist(id, mycursor):
+                        mycursor.execute(
+                            "DELETE FROM passwords WHERE ID=%s", (id,)
+                        )  # comma is essential, as "execute" expects tuple
+                        mydb.commit()
+                        print("> Removing...", user_input[1])
+                    else:
+                        # id doesn't exist:
+                        print("> You need to add valid number of row to remove")
                 else:
-                    print("You need to add parameters:\nR number")
+                    print("> You need to add parameters:\nR number")
 
             # Add new record:
             case "A":
@@ -127,9 +140,9 @@ def do(user_input, mydb, mycursor):
                         (title, login, password),
                     )
                     mydb.commit()
-                    print("Added: ", title, login, password)
+                    print("> Added: ", title, login, password)
                 else:
-                    print("You need to add parameters:\nA title login password")
+                    print("> You need to add parameters:\nA title login password")
 
             # Modify record values:
             case "M":
@@ -139,42 +152,62 @@ def do(user_input, mydb, mycursor):
                     login = user_input[3]
                     password = user_input[4]
 
-                    mycursor.execute(
-                        "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
-                        (title, login, password, id),
-                    )
-                    mydb.commit()
-                    print("Modified: ", title, login, password)
+                    # checking if user provided valid id number:
+                    if id_exist(id, mycursor):
+                        mycursor.execute(
+                            "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
+                            (title, login, password, id),
+                        )
+                        mydb.commit()
+                        print("> Modified: ", title, login, password)
+                    else:
+                        # id doesn't exist:
+                        print("> You need to add valid number of row to modify")
                 else:
-                    print("You need to add parameters:\nM title login password")
+                    print("> You need to add parameters:\nM title login password")
 
             # Erase database:
             case "ERASE":
                 confirmation = input(
-                    "Are you sure?\n Y - yes, erase database\n N - no, keep database"
+                    "> Are you sure?\n Y - yes, erase database\n N - no, keep database"
                 )
                 if confirmation.strip().upper() == "Y":
                     mycursor.execute("DROP DATABASE " + DATABASE)
-                    print("Database erased")
+                    print("> Database erased")
                     show_all_db(mycursor)
                     exit(mydb, mycursor)
                 else:
-                    print("Database stays intact")
+                    print("> Database stays intact")
 
             # Exit:
             case "E":
-                print("Exiting...")
+                print("> Exiting...")
                 exit(mydb, mycursor)
 
             case _:
-                print("Wrong command")
+                print("> Wrong command")
 
 
 def exit(mydb, mycursor):
     # close cursor, connection and exit:
+
     mycursor.close()
     mydb.close()
     sys.exit()
+
+
+def id_exist(id, mycursor):
+    # returns True if id exists in database:
+    
+    mycursor.execute(
+        "SELECT * FROM passwords WHERE ID=%s", (id,)
+    )  # comma is essential, as "execute" expects tuple
+    myresult = mycursor.fetchall()
+
+    if myresult == []:
+        return False
+    else:
+        return True
 
 
 def login_db():
@@ -183,7 +216,7 @@ def login_db():
     print()
     if len(sys.argv) != 3:
         sys.exit(
-            "You must add mySQL username and password as parameters: 'python pass.py username password'"
+            "> You must add mySQL username and password as parameters: 'python pass.py username password'"
         )
     else:
         return sys.argv[1], sys.argv[2]
@@ -191,6 +224,7 @@ def login_db():
 
 def show_all_db(mycursor):
     # show all databases
+
     print()
     mycursor.execute("SHOW DATABASES")
     for x in mycursor:
