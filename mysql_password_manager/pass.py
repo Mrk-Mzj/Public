@@ -9,6 +9,8 @@ import sys
 # Third party imports:
 import mysql.connector
 from mysql.connector import errors
+from tabulate import tabulate
+
 
 DATABASE = "db_pass_python"
 
@@ -95,18 +97,7 @@ def do(user_input, mydb, mycursor):
             case "S":
                 if len(user_input) == 2:
                     id = user_input[1]
-                    print()
-                    mycursor.execute(
-                        "SELECT * FROM passwords WHERE ID=%s", (id,)
-                    )  # comma is essential, as "execute" expects tuple
-                    myresult = mycursor.fetchall()
-
-                    # checking if user provided valid id number:
-                    if id_exist(id, mycursor):
-                        print(myresult)
-                    else:
-                        # id doesn't exist:
-                        print("> You need to add valid number of row to display")
+                    show_chosen_record(id, mycursor)
                 else:
                     print("> You need to add parameters:\nS number")
 
@@ -198,7 +189,7 @@ def exit(mydb, mycursor):
 
 def id_exist(id, mycursor):
     # returns True if id exists in database:
-    
+
     mycursor.execute(
         "SELECT * FROM passwords WHERE ID=%s", (id,)
     )  # comma is essential, as "execute" expects tuple
@@ -236,9 +227,28 @@ def show_all_records(mycursor):
 
     mycursor.execute("SELECT ID, title FROM passwords")
     myresult = mycursor.fetchall()
+    print("\nRecords in the database:")
+    headers = ["id", "title"]
+    print(tabulate(myresult, headers=headers, tablefmt="grid"))
+
+
+def show_chosen_record(id, mycursor):
+    # showing details of a chosen record
+
     print()
-    for x in myresult:
-        print(x)
+    mycursor.execute(
+        "SELECT * FROM passwords WHERE ID=%s", (id,)
+    )  # comma is essential, as "execute" expects tuple
+    myresult = mycursor.fetchall()
+
+    # checking if user provided valid id number:
+    if id_exist(id, mycursor):
+        print("\nDetails:")
+        headers = ["id", "title", "login", "password"]
+        print(tabulate(myresult, headers=headers, tablefmt="grid"))
+    else:
+        # id doesn't exist:
+        print("> You need to add valid number of row to display")
 
 
 if __name__ == "__main__":
