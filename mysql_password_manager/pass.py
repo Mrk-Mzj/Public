@@ -4,7 +4,7 @@ mySQL Password Manager
 
 
 # Standard library imports:
-import sys
+import sys, re
 
 # Third party imports:
 import mysql.connector
@@ -115,7 +115,7 @@ def do(user_input, mydb, mycursor):
                         print("> Removing...", user_input[1])
                     else:
                         # id doesn't exist:
-                        print("> You need to add valid number of row to remove")
+                        print("> You need to add valid 'id' to remove")
                 else:
                     print("> You need to add parameters:\nR number")
 
@@ -126,13 +126,23 @@ def do(user_input, mydb, mycursor):
                     login = user_input[2]
                     password = user_input[3]
 
-                    mycursor.execute(
-                        "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
-                        (title, login, password),
-                    )
-                    mydb.commit()
-                    print("> Added: ", title, login, password)
+                    # Checking password strength:
+                    password_strength_result = password_strenght_check(password)
+                    if password_strength_result[0] == "the password is strong":
+                        # Adding to the database:
+                        mycursor.execute(
+                            "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
+                            (title, login, password),
+                        )
+                        mydb.commit()
+                        print("> Added: ", title, login, password)
+                    else:
+                        # Print how password should be improved:
+                        print("\nRecord not added:")
+                        for _ in password_strength_result:
+                            print(_)
                 else:
+                    # the number of parameters wasn't right:
                     print("> You need to add parameters:\nA title login password")
 
             # Modify record values:
@@ -145,16 +155,26 @@ def do(user_input, mydb, mycursor):
 
                     # checking if user provided valid id number:
                     if id_exist(id, mycursor):
-                        mycursor.execute(
-                            "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
-                            (title, login, password, id),
-                        )
-                        mydb.commit()
-                        print("> Modified: ", title, login, password)
+                        # Checking password strength:
+                        password_strength_result = password_strenght_check(password)
+                        if password_strength_result[0] == "the password is strong":
+                            # Updating the database:
+                            mycursor.execute(
+                                "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
+                                (title, login, password, id),
+                            )
+                            mydb.commit()
+                            print("> Modified: ", title, login, password)
+                        else:
+                            # Print how password should be improved:
+                            print("\nRecord not modified:")
+                            for _ in password_strength_result:
+                                print(_)
                     else:
                         # id doesn't exist:
-                        print("> You need to add valid number of row to modify")
+                        print("> You need to add valid 'id' to modify")
                 else:
+                    # the number of parameters wasn't right:
                     print("> You need to add parameters:\nM title login password")
 
             # Erase database:
@@ -213,6 +233,44 @@ def login_db():
         return sys.argv[1], sys.argv[2]
 
 
+def password_strenght_check(password):
+    """
+    Verify the strength of 'password'
+    Returns a list of communicates what needs to be changed, or "strong"
+    A password is considered strong when it has:
+    - 8 or more: characters
+    - 1 or more: digit, symbol, lowercase letter, uppercase letter
+    """
+
+    password_check_result = []
+
+    # calculating the length
+    if len(password) < 8:
+        password_check_result.append("> Use 8 characters or more")
+
+    # searching for digits
+    if re.search(r"\d", password) is None:
+        password_check_result.append("> Use at least 1 digit")
+
+    # searching for symbols
+    if re.search(r"\W", password) is None:
+        password_check_result.append("> Use at least 1 special character")
+
+    # searching for lowercase
+    if re.search(r"[a-z]", password) is None:
+        password_check_result.append("> Use at least 1 lowercase letter")
+
+    # searching for uppercase
+    if re.search(r"[A-Z]", password) is None:
+        password_check_result.append("> Use at least 1 uppercase letter")
+
+    # if there were no errors added to the list
+    if password_check_result == []:
+        password_check_result.append("the password is strong")
+
+    return password_check_result
+
+
 def show_all_db(mycursor):
     # show all databases
 
@@ -236,19 +294,23 @@ def show_chosen_record(id, mycursor):
     # showing details of a chosen record
 
     print()
-    mycursor.execute(
-        "SELECT * FROM passwords WHERE ID=%s", (id,)
-    )  # comma is essential, as "execute" expects tuple
-    myresult = mycursor.fetchall()
 
     # checking if user provided valid id number:
     if id_exist(id, mycursor):
-        print("\nDetails:")
+        # gathering info to print:
+        mycursor.execute(
+            "SELECT * FROM passwords WHERE ID=%s", (id,)
+        )  # comma is essential, as "execute" expects tuple
+        myresult = mycursor.fetchall()
         headers = ["id", "title", "login", "password"]
+
+        # printing in a table:
+        print("\nDetails:")
         print(tabulate(myresult, headers=headers, tablefmt="grid"))
+
     else:
         # id doesn't exist:
-        print("> You need to add valid number of row to display")
+        print("> You need to add valid 'id' to display")
 
 
 if __name__ == "__main__":
