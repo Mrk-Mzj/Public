@@ -34,16 +34,121 @@ def main():
         print("  M N TTT LLL PPP  - modify record nr NN: title TTT login LLL pass PPP")
         print("  ERASE            - delete the whole database and quit")
         print("  E                - exit\n")
-        user_input = input()
+        user_input = input().strip().split(" ")
 
-        # executing command:
-        do(user_input, mydb, mycursor)
+        # Executing user command.
+        # input checking:
+        if 1 > len(user_input) or len(user_input) > 5:
+            print("> Wrong command")
 
-    # TODO: view, add, modify, delete entry (CRUD operations)
-    # TODO: view as a formatted text table
-    # TODO: search
-    # TODO: encryption
-    # TODO: interface
+        # if everything's fine:
+        else:
+            match user_input[0].upper():
+                # Show decoded record values:
+                case "S":
+                    if len(user_input) == 2:
+                        id = user_input[1]
+                        show_chosen_record(id, mycursor)
+                    else:
+                        print("> You need to add parameters:\nS number")
+
+                # Remove record:
+                case "R":
+                    if len(user_input) == 2:
+                        id = user_input[1]
+
+                        # checking if user provided valid id number:
+                        if id_exist(id, mycursor):
+                            mycursor.execute(
+                                "DELETE FROM passwords WHERE ID=%s", (id,)
+                            )  # comma is essential, as "execute" expects tuple
+                            mydb.commit()
+                            print("> Removing...", user_input[1])
+                        else:
+                            # id doesn't exist:
+                            print("> You need to add valid 'id' to remove")
+                    else:
+                        print("> You need to add parameters:\nR number")
+
+                # Add new record:
+                case "A":
+                    if len(user_input) == 4:
+                        title = user_input[1]
+                        login = user_input[2]
+                        password = user_input[3]
+
+                        # Checking password strength:
+                        password_strength_result = password_strenght_check(password)
+                        if password_strength_result[0] == "the password is strong":
+                            # Adding to the database:
+                            mycursor.execute(
+                                "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
+                                (title, login, password),
+                            )
+                            mydb.commit()
+                            print("> Added: ", title, login, password)
+                        else:
+                            # Print how password should be improved:
+                            print("\nRecord not added:")
+                            for _ in password_strength_result:
+                                print(_)
+                    else:
+                        # the number of parameters wasn't right:
+                        print("> You need to add parameters:\nA title login password")
+
+                # Modify record values:
+                case "M":
+                    if len(user_input) == 5:
+                        id = user_input[1]
+                        title = user_input[2]
+                        login = user_input[3]
+                        password = user_input[4]
+
+                        # checking if user provided valid id number:
+                        if id_exist(id, mycursor):
+                            # Checking password strength:
+                            password_strength_result = password_strenght_check(password)
+                            if password_strength_result[0] == "the password is strong":
+                                # Updating the database:
+                                mycursor.execute(
+                                    "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
+                                    (title, login, password, id),
+                                )
+                                mydb.commit()
+                                print("> Modified: ", title, login, password)
+                            else:
+                                # Print how password should be improved:
+                                print("\nRecord not modified:")
+                                for _ in password_strength_result:
+                                    print(_)
+                        else:
+                            # id doesn't exist:
+                            print("> You need to add valid 'id' to modify")
+                    else:
+                        # the number of parameters wasn't right:
+                        print("> You need to add parameters:\nM title login password")
+
+                # Erase database:
+                case "ERASE":
+                    confirmation = input(
+                        "> Are you sure?\n Y - yes, erase database\n N - no, keep database"
+                    )
+                    if confirmation.strip().upper() == "Y":
+                        mycursor.execute("DROP DATABASE " + DATABASE)
+                        print("> Database erased")
+                        show_all_db(mycursor)
+                        exit(mydb, mycursor)
+                    else:
+                        print("> Database stays intact")
+
+                # Exit:
+                case "E":
+                    print("> Exiting...")
+                    exit(mydb, mycursor)
+
+                case _:
+                    print("> Wrong command")
+
 
 
 def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
@@ -81,122 +186,6 @@ def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
 
         else:
             sys.exit(f"> Other database error: {error}")
-
-
-def do(user_input, mydb, mycursor):
-    user_input = user_input.strip().split(" ")
-
-    # input checking:
-    if 1 > len(user_input) or len(user_input) > 5:
-        print("> Wrong command")
-
-    # if everything's fine:
-    else:
-        match user_input[0].upper():
-            # Show decoded record values:
-            case "S":
-                if len(user_input) == 2:
-                    id = user_input[1]
-                    show_chosen_record(id, mycursor)
-                else:
-                    print("> You need to add parameters:\nS number")
-
-            # Remove record:
-            case "R":
-                if len(user_input) == 2:
-                    id = user_input[1]
-
-                    # checking if user provided valid id number:
-                    if id_exist(id, mycursor):
-                        mycursor.execute(
-                            "DELETE FROM passwords WHERE ID=%s", (id,)
-                        )  # comma is essential, as "execute" expects tuple
-                        mydb.commit()
-                        print("> Removing...", user_input[1])
-                    else:
-                        # id doesn't exist:
-                        print("> You need to add valid 'id' to remove")
-                else:
-                    print("> You need to add parameters:\nR number")
-
-            # Add new record:
-            case "A":
-                if len(user_input) == 4:
-                    title = user_input[1]
-                    login = user_input[2]
-                    password = user_input[3]
-
-                    # Checking password strength:
-                    password_strength_result = password_strenght_check(password)
-                    if password_strength_result[0] == "the password is strong":
-                        # Adding to the database:
-                        mycursor.execute(
-                            "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
-                            (title, login, password),
-                        )
-                        mydb.commit()
-                        print("> Added: ", title, login, password)
-                    else:
-                        # Print how password should be improved:
-                        print("\nRecord not added:")
-                        for _ in password_strength_result:
-                            print(_)
-                else:
-                    # the number of parameters wasn't right:
-                    print("> You need to add parameters:\nA title login password")
-
-            # Modify record values:
-            case "M":
-                if len(user_input) == 5:
-                    id = user_input[1]
-                    title = user_input[2]
-                    login = user_input[3]
-                    password = user_input[4]
-
-                    # checking if user provided valid id number:
-                    if id_exist(id, mycursor):
-                        # Checking password strength:
-                        password_strength_result = password_strenght_check(password)
-                        if password_strength_result[0] == "the password is strong":
-                            # Updating the database:
-                            mycursor.execute(
-                                "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
-                                (title, login, password, id),
-                            )
-                            mydb.commit()
-                            print("> Modified: ", title, login, password)
-                        else:
-                            # Print how password should be improved:
-                            print("\nRecord not modified:")
-                            for _ in password_strength_result:
-                                print(_)
-                    else:
-                        # id doesn't exist:
-                        print("> You need to add valid 'id' to modify")
-                else:
-                    # the number of parameters wasn't right:
-                    print("> You need to add parameters:\nM title login password")
-
-            # Erase database:
-            case "ERASE":
-                confirmation = input(
-                    "> Are you sure?\n Y - yes, erase database\n N - no, keep database"
-                )
-                if confirmation.strip().upper() == "Y":
-                    mycursor.execute("DROP DATABASE " + DATABASE)
-                    print("> Database erased")
-                    show_all_db(mycursor)
-                    exit(mydb, mycursor)
-                else:
-                    print("> Database stays intact")
-
-            # Exit:
-            case "E":
-                print("> Exiting...")
-                exit(mydb, mycursor)
-
-            case _:
-                print("> Wrong command")
 
 
 def exit(mydb, mycursor):
@@ -238,15 +227,15 @@ def password_strenght_check(password):
     Verify the strength of 'password'
     Returns a list of communicates what needs to be changed, or "strong"
     A password is considered strong when it has:
-    - 8 or more: characters
+    - 12 or more: characters
     - 1 or more: digit, symbol, lowercase letter, uppercase letter
     """
 
     password_check_result = []
 
     # calculating the length
-    if len(password) < 8:
-        password_check_result.append("> Use 8 characters or more")
+    if len(password) < 12:
+        password_check_result.append("> Use 12 characters or more")
 
     # searching for digits
     if re.search(r"\d", password) is None:
