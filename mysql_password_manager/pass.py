@@ -48,7 +48,7 @@ def main():
                 case "S":
                     if len(user_input) == 2:
                         id = user_input[1]
-                        show_chosen_record(id, mycursor)
+                        show_chosen_record(id, mycursor, MY_SQL_PASSWORD)
                     else:
                         print("> You need to add parameters:\nS number")
 
@@ -82,8 +82,14 @@ def main():
                         if password_strength_result[0] == "the password is strong":
                             # Adding to the database:
                             mycursor.execute(
-                                "INSERT INTO passwords (title, login, password) VALUES (%s, %s, %s)",
-                                (title, login, password),
+                                "INSERT INTO passwords (title, login, password) VALUES (%s, AES_ENCRYPT(%s,%s), AES_ENCRYPT(%s,%s))",
+                                (
+                                    title,
+                                    login,
+                                    MY_SQL_PASSWORD,
+                                    password,
+                                    MY_SQL_PASSWORD,
+                                ),
                             )
                             mydb.commit()
                             print("> Added: ", title, login, password)
@@ -111,8 +117,8 @@ def main():
                             if password_strength_result[0] == "the password is strong":
                                 # Updating the database:
                                 mycursor.execute(
-                                    "UPDATE passwords SET title=%s, login=%s, password=%s WHERE ID=%s",
-                                    (title, login, password, id),
+                                    "UPDATE passwords SET title=%s, login=AES_ENCRYPT(%s,%s), password=AES_ENCRYPT(%s,%s) WHERE ID=%s",
+                                    (title, login, MY_SQL_PASSWORD, password, MY_SQL_PASSWORD, id),
                                 )
                                 mydb.commit()
                                 print("> Modified: ", title, login, password)
@@ -131,7 +137,7 @@ def main():
                 # Erase database:
                 case "ERASE":
                     confirmation = input(
-                        "> Are you sure?\n Y - yes, erase database\n N - no, keep database"
+                        "> Are you sure?\n Y - yes, erase database\n N - no, keep database\n"
                     )
                     if confirmation.strip().upper() == "Y":
                         mycursor.execute("DROP DATABASE " + DATABASE)
@@ -139,7 +145,7 @@ def main():
                         show_all_db(mycursor)
                         exit(mydb, mycursor)
                     else:
-                        print("> Database stays intact")
+                        print("\n> Database stays intact")
 
                 # Exit:
                 case "E":
@@ -148,7 +154,6 @@ def main():
 
                 case _:
                     print("> Wrong command")
-
 
 
 def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
@@ -176,7 +181,7 @@ def connect_create_db(MY_SQL_USER, MY_SQL_PASSWORD):
             mycursor.execute("CREATE DATABASE " + DATABASE)
             mycursor.execute("USE " + DATABASE)
             mycursor.execute(
-                "CREATE TABLE passwords (ID int NOT NULL AUTO_INCREMENT, title TEXT, login TEXT, password TEXT, PRIMARY KEY (ID))"
+                "CREATE TABLE passwords (ID int NOT NULL AUTO_INCREMENT, title TEXT, login BLOB, password BLOB, PRIMARY KEY (ID))"
             )
             return mydb, mycursor
 
@@ -279,18 +284,23 @@ def show_all_records(mycursor):
     print(tabulate(myresult, headers=headers, tablefmt="grid"))
 
 
-def show_chosen_record(id, mycursor):
+def show_chosen_record(id, mycursor, MY_SQL_PASSWORD):
     # showing details of a chosen record
 
     print()
 
-    # checking if user provided valid id number:
+    # checking if user provided valid id number 
     if id_exist(id, mycursor):
-        # gathering info to print:
+        # Gathering information.
+        # AES_DECRYPT returns Hex value - it needs to be cast to Characters:
         mycursor.execute(
-            "SELECT * FROM passwords WHERE ID=%s", (id,)
-        )  # comma is essential, as "execute" expects tuple
+            "SELECT ID, title, CAST(AES_DECRYPT(login,%s) AS CHAR), CAST(AES_DECRYPT(password,%s) AS CHAR) FROM passwords WHERE ID=%s",
+            (MY_SQL_PASSWORD, MY_SQL_PASSWORD, id),
+        )
+
         myresult = mycursor.fetchall()
+        print(myresult)
+
         headers = ["id", "title", "login", "password"]
 
         # printing in a table:
