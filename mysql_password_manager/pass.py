@@ -299,8 +299,6 @@ def show_chosen_record(id, mycursor, MY_SQL_PASSWORD):
         )
 
         myresult = mycursor.fetchall()
-        print(myresult)
-
         headers = ["id", "title", "login", "password"]
 
         # printing in a table:
