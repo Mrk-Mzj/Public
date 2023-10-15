@@ -7,15 +7,6 @@ def is_polish_national_id(input_str: str) -> bool:
     but convert it to int for some calculations.
 
 
-    >>> is_polish_national_id("02070803628")
-    True
-
-    >>> is_polish_national_id("-99012212349")
-    False
-
-    >>> is_polish_national_id("990122123499999")
-    False
-
     >>> is_polish_national_id(123)
     Traceback (most recent call last):
         ...
@@ -25,6 +16,24 @@ def is_polish_national_id(input_str: str) -> bool:
     Traceback (most recent call last):
         ...
     ValueError: Expected number as input
+
+    >>> is_polish_national_id("02070803628") # correct PESEL
+    True
+
+    >>> is_polish_national_id("02150803629") # wrong month
+    False
+
+    >>> is_polish_national_id("02075503622") # wrong day
+    False
+
+    >>> is_polish_national_id("-99012212349") # wrong range
+    False
+
+    >>> is_polish_national_id("990122123499999") # wrong range
+    False
+
+    >>> is_polish_national_id("02070803621") # wrong checksum
+    False
     """
 
     # check for invalid input type
@@ -43,8 +52,23 @@ def is_polish_national_id(input_str: str) -> bool:
     if input_int < 10100000 or input_int > 99923199999:
         return False
 
-    # check month corectness (01-12), (21-32), (41-52), (61-72), (81-92)
+    # check month corectness
+    month = int(input_str[2:4])
+
+    if (
+        month not in range(1, 13)  # 1900-1999
+        and month not in range(21, 33)  # 2000-2099
+        and month not in range(41, 53)  # 2100-2199
+        and month not in range(61, 73)  # 2200-2299
+        and month not in range(81, 93)  # 1800-1899
+    ):
+        return False
+
     # check day corectness (01-31)
+    day = int(input_str[4:6])
+
+    if day not in range(1, 32):
+        return False
 
     # check the checksum
     multipliers = [1, 3, 7, 9, 1, 3, 7, 9, 1, 3]
@@ -53,8 +77,8 @@ def is_polish_national_id(input_str: str) -> bool:
     digits_to_check = str(input_str)[:-1]  # cut off the checksum
 
     for index, digit in enumerate(digits_to_check):
-        # Multiply corresponding digits and multipiers
-        # With a double-digit result, add only the last digit
+        # Multiply corresponding digits and multipiers.
+        # In case of a double-digit result, add only the last digit.
         sum += (int(digit) * multipliers[index]) % 10
 
     checksum = 10 - sum % 10
