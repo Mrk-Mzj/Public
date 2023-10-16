@@ -48,7 +48,7 @@ def is_polish_national_id(input_str: str) -> bool:
         msg = "Expected number as input"
         raise ValueError(msg)
 
-    # check number range (00010100000-99923199999)
+    # check number range
     if input_int < 10100000 or input_int > 99923199999:
         return False
 
@@ -56,7 +56,7 @@ def is_polish_national_id(input_str: str) -> bool:
     month = int(input_str[2:4])
 
     if (
-        month not in range(1, 13)  # 1900-1999
+        month not in range(1, 13)  # year 1900-1999
         and month not in range(21, 33)  # 2000-2099
         and month not in range(41, 53)  # 2100-2199
         and month not in range(61, 73)  # 2200-2299
@@ -64,7 +64,7 @@ def is_polish_national_id(input_str: str) -> bool:
     ):
         return False
 
-    # check day corectness (01-31)
+    # check day corectness
     day = int(input_str[4:6])
 
     if day not in range(1, 32):
