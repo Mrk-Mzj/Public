@@ -1,6 +1,40 @@
 def fizz_buzz_checker(number: int) -> str:
-    # checks if given number should be replaced
-    # with fizz, buzz, fizzbuzz or left unchanged
+    """
+    Checks if given number should be replaced
+    with fizz, buzz, fizzbuzz or left unchanged
+
+    >>> fizz_buzz_checker("abc")
+    Traceback (most recent call last):
+    ...
+    ValueError: Expected str as input, found <class 'str'>
+
+    >>> fizz_buzz_checker(-5)
+    Traceback (most recent call last):
+    ...
+    ValueError: input must be positive
+
+    >>> fizz_buzz_checker(0)
+    Traceback (most recent call last):
+    ...
+    ValueError: input must be positive
+
+    >>> fizz_buzz_checker(3)
+    'fizz'
+
+    >>> fizz_buzz_checker(5)
+    'buzz'
+
+    >>> fizz_buzz_checker(15)
+    'fizzbuzz'
+
+    """
+
+    if not isinstance(number, int):
+        msg = f"Expected str as input, found {type(number)}"
+        raise ValueError(msg)
+
+    if number <= 0:
+        raise ValueError("input must be positive")
 
     if number % 15 == 0:
         return "fizzbuzz"
@@ -16,7 +50,10 @@ def fizz_buzz_checker(number: int) -> str:
 
 
 if __name__ == "__main__":
-    end_ranage = 15
+    from doctest import testmod
 
+    testmod()
+
+    end_ranage = 15
     for i in range(end_ranage):
         print(fizz_buzz_checker(i + 1))
